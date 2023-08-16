@@ -1,0 +1,33 @@
+{
+	"private": true,
+	"scripts": {
+		"dev": "next dev --turbo --show-all",
+		"dev:wasm": "wasm-pack build ./client --out-dir ../src/client --target web --dev",
+		"build": "next build",
+		"build:wasm": "wasm-pack build ./client --out-dir ../src/client --target web",
+		"start": "next start",
+		"lint:next": "next lint",
+		"lint:prettier": "prettier . --write",
+		"lint": "concurrently \"npm:lint:*\""
+	},
+	"dependencies": {
+		"next": "^13.4.10",
+		"preact": "^8.5.3",
+		"preact-compat": "^3.19.0"
+	},
+	"devDependencies": {
+		"@types/node": "^20.4.2",
+		"@types/react": "^18.2.15",
+		"@types/react-dom": "^18.2.7",
+		"autoprefixer": "10.4.14",
+		"concurrently": "^8.2.0",
+		"eslint": "^8.45.0",
+		"eslint-config-next": "^13.4.10",
+		"postcss": "^8.4.26",
+		"prettier": "^3.0.0",
+		"prettier-plugin-organize-imports": "^3.2.3",
+		"prettier-plugin-tailwindcss": "^0.4.1",
+		"tailwindcss": "^3.3.3",
+		"typescript": "^5.1.6"
+	}
+}
