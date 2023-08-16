@@ -22,10 +22,8 @@ wasm-bindgen = "0.2.84"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 itertools = "0.11.0"
 earcutr = "0.4.2"
-bevy_matchbox = { version = "0.7.0", features = ["ggrs"] }
-ggrs = "0.9.4"
-bevy_ggrs = "0.13.0"
 web-sys = { version = "0.3.64", features = ["Window"] }
+wee_alloc = "0.4.5"
 
 [dependencies.bevy]
 version = "0.11.0"
@@ -51,9 +49,9 @@ features = [
   "x11"
 ]
 
-# [profile.release]
-# opt-level = 'z'     # Optimize for size
-# lto = true          # Enable link-time optimization
-# codegen-units = 1   # Reduce number of codegen units to increase optimizations
-# panic = 'abort'     # Abort on panic
-# strip = true        # Strip symbols from binary
+[profile.release]
+opt-level = 'z'     # Optimize for size
+lto = true          # Enable link-time optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations
+panic = 'abort'     # Abort on panic
+strip = true        # Strip symbols from binary

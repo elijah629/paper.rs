@@ -19,6 +19,7 @@ impl MeshToVert for Mesh {
         v.push(v[0]);
         Some(v)
     }
+
     fn vertices_raw(&self) -> Option<&[[f32; 3]]> {
         let points = self.attribute(Mesh::ATTRIBUTE_POSITION)?;
         let points = points.as_float3()?;

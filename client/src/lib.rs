@@ -9,20 +9,16 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     window::{PresentMode, WindowMode},
 };
-use bevy_ggrs::GgrsPlugin;
-use bevy_matchbox::prelude::PeerId;
 use components::{
     character_controller::CharacterController,
     game::Game,
     line::Line,
     name::Name,
-    player::{add_player_systems, player_input, Player},
+    player::{add_player_systems, Player},
     team::Team,
 };
-
-use ggrs::{Config, PlayerHandle};
 use team_color::TeamColor;
-use utils::{mesh_to_vert::MeshToVert, set_panic_hook::set_panic_hook};
+use utils::{mesh_to_vert::MeshToVert, set_panic_hook::set_panic_hook, unwrap_abort::UnwrapAbort};
 use wasm_bindgen::prelude::*;
 
 pub const BOARD_RADIUS: f32 = 200.;
@@ -30,13 +26,17 @@ pub const PLAYER_VELOCITY: f32 = 200.;
 pub const PLAYER_SIZE: f32 = 18.;
 pub const LINE_WIDTH: f32 = PLAYER_SIZE;
 
-#[derive(Debug)]
-pub struct GGRSConfig;
-impl Config for GGRSConfig {
-    type Input = Vec2;
-    type State = u8;
-    type Address = PeerId;
-}
+// smaller binary
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+// #[derive(Debug)]
+// pub struct GGRSConfig;
+// impl Config for GGRSConfig {
+//     type Input = Vec2;
+//     type State = u8;
+//     type Address = PeerId;
+// }
 
 #[wasm_bindgen(start)]
 fn main() {
@@ -101,7 +101,7 @@ fn setup(
 
     let bounds_verts = Into::<Mesh>::into(shape::RegularPolygon::new(100., 17))
         .vertices_2d()
-        .unwrap();
+        .unwrap_abort();
 
     let bounds: Mesh2dHandle = meshes
         .add({
@@ -122,7 +122,7 @@ fn setup(
     let bounds_entity = commands
         .spawn(MaterialMesh2dBundle {
             mesh: bounds.clone(),
-            material: game.team_mats.get(&TeamColor::Green).unwrap().clone(),
+            material: game.team_mats.get(&TeamColor::Green).unwrap_abort().clone(),
             ..default()
         })
         .id();
@@ -139,7 +139,7 @@ fn setup(
     let line_entity = commands
         .spawn(MaterialMesh2dBundle {
             mesh: line_mesh.clone(),
-            material: game.team_mats.get(&TeamColor::Green).unwrap().clone(),
+            material: game.team_mats.get(&TeamColor::Green).unwrap_abort().clone(),
             ..default()
         })
         .id();
@@ -151,7 +151,7 @@ fn setup(
                 mesh: meshes
                     .add(shape::Quad::new(Vec2::new(PLAYER_SIZE, PLAYER_SIZE)).into())
                     .into(),
-                material: game.team_mats.get(&TeamColor::Green).unwrap().clone(),
+                material: game.team_mats.get(&TeamColor::Green).unwrap_abort().clone(),
                 transform: Transform::from_translation(Vec3::ZERO),
                 ..default()
             },

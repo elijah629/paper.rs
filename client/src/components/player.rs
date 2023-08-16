@@ -1,16 +1,3 @@
-use std::{f32::consts::FRAC_PI_2, time::Duration};
-
-use bevy::{
-    prelude::*,
-    render::{mesh::Indices, primitives::Aabb},
-    sprite::Mesh2dHandle,
-    time::common_conditions::on_timer,
-};
-use bevy_ggrs::PlayerInputs;
-use ggrs::PlayerHandle;
-use itertools::Itertools;
-use wasm_bindgen::JsValue;
-
 use crate::{
     latest_fm_pos,
     utils::{
@@ -22,9 +9,18 @@ use crate::{
         },
         mesh_to_vert::MeshToVert,
         rotate_vec::RotateVec,
+        unwrap_abort::UnwrapAbort,
     },
-    GGRSConfig, LINE_WIDTH, PLAYER_SIZE, PLAYER_VELOCITY,
+    LINE_WIDTH, PLAYER_SIZE, PLAYER_VELOCITY,
 };
+use bevy::{
+    prelude::*,
+    render::{mesh::Indices, primitives::Aabb},
+    sprite::Mesh2dHandle,
+    time::common_conditions::on_timer,
+};
+use itertools::Itertools;
+use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use super::{character_controller::CharacterController, line::Line, name::Name, team::Team};
 
@@ -39,10 +35,10 @@ impl Player {
     pub fn kill(&mut self) {
         info!("Player died");
         self.dead = true;
-        let window = web_sys::window().unwrap();
+        let window = web_sys::window().unwrap_abort();
         window
             .alert_with_message("You died, refresh to test demo again")
-            .unwrap();
+            .unwrap_abort();
     }
 }
 
@@ -98,7 +94,7 @@ pub fn player_input(
         if let Some(target) = latest_fm_pos(mouse_evr, touch_evr) {
             let target = camera
                 .viewport_to_world_2d(camera_transform, target)
-                .unwrap();
+                .unwrap_abort();
             direction = target - player.translation.truncate();
         }
 
@@ -137,7 +133,7 @@ pub fn player_nametag(
 ) {
     for (mut text, name) in &mut nametag_query {
         if let Some(entity) = name.0 {
-            let player = player_query.get(entity).unwrap();
+            let player = player_query.get(entity).unwrap_abort();
             text.translation = player.translation + (Vec3::Y * (PLAYER_SIZE + 5.));
         }
     }
@@ -154,46 +150,38 @@ pub fn player_lines(
         }
 
         if !player.in_bounds {
-            let (line_mesh, mut aabb) = lines.get_mut(line.entity.unwrap()).unwrap();
-            let mesh = meshes.get_mut(&line_mesh.0).unwrap();
+            let (line_mesh, mut aabb) = lines.get_mut(line.entity.unwrap_abort()).unwrap_abort();
+            let mesh = meshes.get_mut(&line_mesh.0).unwrap_abort();
 
             line.points.push(player_pos.translation.truncate());
 
-            if line.points.len() > 1 {
-                // let spline = CardinalSpline::new(0.1, line.points.to_vec());
-                // let curve = spline.to_curve();
-                // let len = curve.segments().len();
+            let vertices: Vec<[f32; 3]> = {
+                const HALF_WIDTH: f32 = LINE_WIDTH / 2.;
+                let half_vec = Vec2::new(HALF_WIDTH, 0.);
 
-                let vertices: Vec<[f32; 3]> = {
-                    const HALF_WIDTH: f32 = LINE_WIDTH / 2.;
-                    let half_vec = Vec2::new(HALF_WIDTH, 0.);
+                line.points
+                    .iter()
+                    .tuple_windows()
+                    .map(|(&a, &b)| {
+                        let diff = a - b;
+                        let angle = diff.y.atan2(diff.x);
+                        let p = a - half_vec;
 
-                    // curve
-                    //     .iter_positions(len * 50)
-                    line.points
-                        .iter()
-                        .tuple_windows()
-                        .map(|(&a, &b)| {
-                            let diff = a - b;
-                            let angle = diff.y.atan2(diff.x);
-                            let p = a - half_vec;
+                        let l = p.rotate_around(angle + FRAC_PI_2, a).extend(0.);
+                        let r = p.rotate_around(angle - FRAC_PI_2, a).extend(0.);
 
-                            let l = p.rotate_around(angle + FRAC_PI_2, a).extend(0.);
-                            let r = p.rotate_around(angle - FRAC_PI_2, a).extend(0.);
+                        (l.to_array(), r.to_array())
+                    })
+                    .tuple_windows()
+                    .map(|(a, b)| triangulate_quad(&[a.0, a.1, b.0, b.1]))
+                    .flatten()
+                    .collect()
+            };
 
-                            (l.to_array(), r.to_array())
-                        })
-                        .tuple_windows()
-                        .map(|(a, b)| triangulate_quad(&[a.0, a.1, b.0, b.1]))
-                        .flatten()
-                        .collect()
-                };
+            mesh.set_vertices_raw(vertices);
 
-                mesh.set_vertices_raw(vertices);
-
-                if let Some(c) = mesh.compute_aabb() {
-                    *aabb = c;
-                }
+            if let Some(c) = mesh.compute_aabb() {
+                *aabb = c;
             }
         }
     }
@@ -209,27 +197,27 @@ pub fn player_line_transitions(
             continue;
         }
         if let Ok([(line_mesh, mut line_aabb), (bounds_mesh, mut bounds_aabb)]) =
-            lines_bounds.get_many_mut([line.entity.unwrap(), team.entity.unwrap()])
+            lines_bounds.get_many_mut([line.entity.unwrap_abort(), team.entity.unwrap_abort()])
         {
             // Enter
             if player.in_bounds && !player.last_in_bounds {
                 line.points.push(player_pos.translation.truncate());
-                let merged = extend_poly_line(&team.points, &line.points).unwrap();
+                let merged = extend_poly_line(&team.points, &line.points).unwrap_abort();
 
                 let indices = triangulate_indices(&merged);
 
                 team.points = merged.clone();
 
-                let bounds_mesh = meshes.get_mut(&bounds_mesh.0).unwrap();
+                let bounds_mesh = meshes.get_mut(&bounds_mesh.0).unwrap_abort();
                 bounds_mesh.set_vertices_2d(merged);
                 bounds_mesh.set_indices(Some(Indices::U32(indices)));
 
-                *bounds_aabb = bounds_mesh.compute_aabb().unwrap();
+                *bounds_aabb = bounds_mesh.compute_aabb().unwrap_abort();
 
                 // Reset line to none
-                let line_mesh = meshes.get_mut(&line_mesh.0).unwrap();
+                let line_mesh = meshes.get_mut(&line_mesh.0).unwrap_abort();
                 line_mesh.set_vertices_raw(vec![[0., 0., 0.]]);
-                *line_aabb = line_mesh.compute_aabb().unwrap();
+                *line_aabb = line_mesh.compute_aabb().unwrap_abort();
 
                 line.points = vec![];
             }
@@ -272,9 +260,9 @@ pub fn camera_follow_player(
     )>,
 ) {
     let binding = set.p1();
-    let player = binding.get_single().unwrap().translation;
+    let player = binding.get_single().unwrap_abort().translation;
     let mut binding = set.p0();
-    let mut camera = binding.get_single_mut().unwrap();
+    let mut camera = binding.get_single_mut().unwrap_abort();
 
     camera.translation = player.truncate().extend(1.);
 }
