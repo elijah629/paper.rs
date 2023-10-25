@@ -11,7 +11,7 @@
 		"lint": "concurrently \"npm:lint:*\""
 	},
 	"dependencies": {
-		"next": "^13.4.10",
+		"next": "^13.5.0",
 		"preact": "^8.5.3",
 		"preact-compat": "^3.19.0"
 	},
